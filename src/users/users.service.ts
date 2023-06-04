@@ -1,11 +1,18 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { EmailService } from "src/email/email.service";
 import { v5 } from 'uuid';
 import { UserInfo } from "./UserInfo";
+import { InjectRepository } from "@nestjs/typeorm";
+import { UserEntity } from "./entities/user.entity";
+import { Repository } from "typeorm";
 
 @Injectable()
 export class UsersService {
-  constructor(private emailService: EmailService) { }
+  constructor(
+    @InjectRepository(UserEntity)
+    private usersRepository: Repository<UserEntity>,
+    private emailService: EmailService,
+  ) { }
 
   async createUser(name: string, email: string, password: string) {
     await this.checkUserExists(email);
@@ -17,13 +24,26 @@ export class UsersService {
   }
 
   private async checkUserExists(email: string) {
-    // [TODO] must be implemented after connect DB
-    return false;
+    const userInfo = await this.usersRepository.findOne({
+      where: { email },
+    });
+    console.log(!!userInfo)
+    return !!userInfo;
   }
 
-  private async saveUser(name: string, email: string, password: string, signupVerifyToken: string) {
-    // [TODO] must be implemented after connect DB
-    return;
+  private async saveUser(name: string, email: string, password: string, signupVerifyToken: string,) {
+    const isUserExists = this.checkUserExists(email);
+    if (!isUserExists) {
+      throw new UnprocessableEntityException('duplicate email');
+    }
+
+    const user = new UserEntity();
+    user.uuid = v5(name, process.env.NAMESPACE_UUID);
+    user.name = name;
+    user.email = email;
+    user.password = password;
+    user.signupVerifyToken = signupVerifyToken;
+    await this.usersRepository.save(user);
   }
 
   private async sendMemberJoinEmail(email: string, signupVerifyToken: string) {
@@ -40,12 +60,18 @@ export class UsersService {
     throw new Error('method not implemented');
   }
 
-  async getUserInfo(userId: string): Promise<UserInfo> {
-    // [TODO] must be implemented after DB
-    throw new Error('method not implemented');
+  async getUserInfo(uuid: string): Promise<UserInfo> {
+    const userInfo = await this.usersRepository.findOne({
+      where: { uuid },
+    });
+    return userInfo;
   }
 
-  remove(id: number) {
-    return 'This action removs a user(id)';
+  async remove(uuid: string) {
+    const res = await this.usersRepository.delete({ uuid });
+    if (res.affected !== 1) {
+      return false;
+    }
+    return true;
   }
 }

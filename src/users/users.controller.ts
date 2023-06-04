@@ -1,5 +1,5 @@
 import {
-  Body, Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, Post, Query
+  Body, Controller, DefaultValuePipe, Delete, Get, HttpCode, NotFoundException, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, Res
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -42,15 +42,20 @@ export class UsersController {
     return await this.usersService.login(email, password);
   }
 
-  @Get('/:id')
-  async getUserInfo(@Param('id') userId: string): Promise<UserInfo> {
-    return await this.usersService.getUserInfo(userId);
+  @Get('/:userUuid')
+  async getUserInfo(@Param('userUuid', new ParseUUIDPipe({ errorHttpStatusCode: 406 })) userUuid: string): Promise<UserInfo> {
+    return await this.usersService.getUserInfo(userUuid);
   }
 
-  @Delete('/:id')
+  @HttpCode(204)
+  @Delete('/:userUuid')
   async remove(
-    @Param('id', new ParseIntPipe({ errorHttpStatusCode: 406 })) id: number,
+    @Param('userUuid', new ParseUUIDPipe({ errorHttpStatusCode: 406 })) userUuid: string,
   ) {
-    return this.usersService.remove(id);
+    await this.usersService.remove(userUuid).then((isRemoved) => {
+      if (!isRemoved) {
+        throw new NotFoundException('user not found');
+      }
+    });
   }
 }
