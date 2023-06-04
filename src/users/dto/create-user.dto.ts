@@ -13,10 +13,11 @@ export class CreateUserDto {
   readonly email: string;
 
   @Transform(({ value, obj }) => {
-    if (obj.password.includes(obj.name.trim())) {
+    const { password, name } = obj;
+    if ((String(password)).includes(name.trim())) {
       throw new BadRequestException('password cannot contain username');
     }
-    return value.param;
+    return value;
   })
   @MinLength(8)
   @MaxLength(20)
