@@ -27,15 +27,13 @@ export class UsersService {
     const userInfo = await this.usersRepository.findOne({
       where: { email },
     });
-    console.log(!!userInfo)
-    return !!userInfo;
+    if (!!userInfo) {
+      throw new UnprocessableEntityException('duplicate email');
+    }
   }
 
   private async saveUser(name: string, email: string, password: string, signupVerifyToken: string,) {
-    const isUserExists = this.checkUserExists(email);
-    if (!isUserExists) {
-      throw new UnprocessableEntityException('duplicate email');
-    }
+    await this.checkUserExists(email);
 
     const user = new UserEntity();
     user.uuid = v5(name, process.env.NAMESPACE_UUID);
