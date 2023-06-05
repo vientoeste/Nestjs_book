@@ -15,7 +15,7 @@ export class UsersService {
   ) { }
 
   async createUser(name: string, email: string, password: string) {
-    await this.checkUserExists(email);
+    await this.checkUserExists(email, name);
 
     const signupVerifyToken = v5(email.concat(new Date().toISOString()), process.env.NAMESPACE_UUID);
 
@@ -23,17 +23,17 @@ export class UsersService {
     await this.sendMemberJoinEmail(email, signupVerifyToken);
   }
 
-  private async checkUserExists(email: string) {
-    const userInfo = await this.usersRepository.findOne({
-      where: { email },
+  private async checkUserExists(email: string, name: string) {
+    const userInfo = await this.usersRepository.find({
+      where: [{ email }, { name }],
     });
-    if (!!userInfo) {
-      throw new UnprocessableEntityException('duplicate email');
+    if (userInfo.length !== 0) {
+      throw new UnprocessableEntityException(`duplicate ${userInfo[0].email === email ? 'email' : 'name'}`);
     }
   }
 
-  private async saveUser(name: string, email: string, password: string, signupVerifyToken: string,) {
-    await this.checkUserExists(email);
+  private async saveUser(name: string, email: string, password: string, signupVerifyToken: string) {
+    await this.checkUserExists(email, name);
 
     const user = new UserEntity();
     user.uuid = v5(name, process.env.NAMESPACE_UUID);
