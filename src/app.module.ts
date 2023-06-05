@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersController } from './users/users.controller';
 import { UsersService } from './users/users.service';
@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { EmailModule } from './email/email.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './users/entities/user.entity';
+import { LoggerMiddleware } from './middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -29,4 +30,11 @@ import { UserEntity } from './users/entities/user.entity';
   controllers: [UsersController],
   providers: [UsersService, EmailService, ConfigService],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // [INFO] activate when applying middleware to a particular router
+    // consumer
+    //   .apply(LoggerMiddleware)
+    //   .forRoutes('/users')
+  }
+}
