@@ -8,10 +8,14 @@ import { EmailModule } from './email/email.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './users/entities/user.entity';
 import { LoggerMiddleware } from './middleware/logger.middleware';
+import { AuthGuard } from './auth.guard';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthService } from './auth/auth.service';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
-    UsersModule, EmailModule,
+    UsersModule, EmailModule, AuthModule,
     ConfigModule.forRoot({
       envFilePath: `.${process.env.NODE_ENV}.env`
     }),
@@ -28,7 +32,12 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
     }),
   ],
   controllers: [UsersController],
-  providers: [UsersService, EmailService, ConfigService],
+  providers: [
+    UsersService, EmailService,
+    ConfigService, AuthGuard, AuthService,
+    // [INFO] 가드에 프로바이더 주입 시
+    // { provide: APP_GUARD, useClass: AuthGuard },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

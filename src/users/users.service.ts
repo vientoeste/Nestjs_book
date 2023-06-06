@@ -1,10 +1,11 @@
-import { Injectable, UnprocessableEntityException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
 import { EmailService } from "src/email/email.service";
 import { v5 } from 'uuid';
 import { UserInfo } from "./UserInfo";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "./entities/user.entity";
 import { Repository } from "typeorm";
+import { AuthService } from "src/auth/auth.service";
 
 @Injectable()
 export class UsersService {
@@ -12,6 +13,7 @@ export class UsersService {
     @InjectRepository(UserEntity)
     private usersRepository: Repository<UserEntity>,
     private emailService: EmailService,
+    private authService: AuthService,
   ) { }
 
   async createUser(name: string, email: string, password: string) {
@@ -49,20 +51,49 @@ export class UsersService {
   }
 
   async verifyEmail(signupVerifyToken: string): Promise<string> {
-    // [TODO] must be implemented after DB/JWT
-    throw new Error('method not implemented');
+    const user = await this.usersRepository.findOne({
+      where: { signupVerifyToken },
+    });
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+
+    return this.authService.login({
+      uuid: user.uuid,
+      name: user.name,
+      email: user.email,
+    });
   }
 
   async login(email: string, password: string): Promise<string> {
-    // [TODO] must be implemented after DB
-    throw new Error('method not implemented');
+    const user = await this.usersRepository.findOne({
+      where: { email, password },
+    });
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+
+    return this.authService.login({
+      uuid: user.uuid,
+      name: user.name,
+      email: user.email,
+    });
   }
 
   async getUserInfo(uuid: string): Promise<UserInfo> {
     const userInfo = await this.usersRepository.findOne({
       where: { uuid },
     });
-    return userInfo;
+
+    if (!userInfo) {
+      throw new NotFoundException('user not found');
+    }
+
+    return {
+      uuid: userInfo.uuid,
+      name: userInfo.name,
+      email: userInfo.email,
+    };
   }
 
   async remove(uuid: string) {
