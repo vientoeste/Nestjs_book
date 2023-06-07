@@ -1,7 +1,7 @@
 export class IssueTokenDto {
-    uuid: string;
+  uuid: string;
 
-    name: string;
+  name: string;
 
-    email: string;
+  email: string;
 }

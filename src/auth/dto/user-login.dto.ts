@@ -1,11 +1,11 @@
 export class UserLoginDto {
-    uuid: string;
+  uuid: string;
 
-    name: string;
+  name: string;
 
-    email: string;
+  email: string;
 
-    hashedPw: string;
+  hashedPw: string;
 
-    plainPw: string;
+  plainPw: string;
 }
