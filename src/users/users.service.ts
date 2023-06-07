@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException, UnprocessableEntityException } from "@nestjs/common";
 import { EmailService } from "src/email/email.service";
 import { v5 } from 'uuid';
 import { UserInfo } from "./UserInfo";
@@ -6,6 +6,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "./entities/user.entity";
 import { Repository } from "typeorm";
 import { AuthService } from "src/auth/auth.service";
+import { genSalt, hash } from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +22,10 @@ export class UsersService {
 
     const signupVerifyToken = v5(email.concat(new Date().toISOString()), process.env.NAMESPACE_UUID);
 
-    await this.saveUser(name, email, password, signupVerifyToken);
+    const salt = await genSalt(12);
+    const hashedPw = await hash(password, salt);
+
+    await this.saveUser(name, email, hashedPw, signupVerifyToken);
     await this.sendMemberJoinEmail(email, signupVerifyToken);
   }
 
@@ -58,16 +62,16 @@ export class UsersService {
       throw new NotFoundException('user not found');
     }
 
-    return this.authService.login({
+    return this.authService.issueToken({
       uuid: user.uuid,
       name: user.name,
       email: user.email,
     });
   }
 
-  async login(email: string, password: string): Promise<string> {
+  async login(email: string, plainPw: string): Promise<string> {
     const user = await this.usersRepository.findOne({
-      where: { email, password },
+      where: { email },
     });
     if (!user) {
       throw new NotFoundException('user not found');
@@ -77,6 +81,8 @@ export class UsersService {
       uuid: user.uuid,
       name: user.name,
       email: user.email,
+      plainPw: plainPw,
+      hashedPw: user.password,
     });
   }
 
